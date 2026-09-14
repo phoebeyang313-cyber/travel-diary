@@ -1,222 +1,42 @@
-# 🌍 Travel Diary - 旅行日记
+# 旅行日记 · Travel Diary
 
-一个网络应用，用于记录你的旅行足迹、分享照片和发现本地美食美景。
+记录旅行足迹：上传照片与文字、自动定位、发现附近美食美景，一键导出朋友圈竖版卡片。
 
-## 功能特性
+在线地址：https://travel-diary-sable.vercel.app/
 
-✨ **核心功能**
-- 📸 上传照片和文字描述
-- 📍 GPS 定位记录位置
-- 🍽️ 智能推荐本地美食和美景
-- 🗺️ 交互式地图展示所有旅行足迹
-- ⭐ 为每个地点评分
+## 功能
 
-## 项目结构
+| 功能 | 说明 |
+| --- | --- |
+| 旅行记录 | 标题、地点、到访日期、评分、描述，支持新增 / 编辑 / 删除 |
+| 照片 | 多图上传，自动压缩后存入浏览器 IndexedDB，刷新不丢失 |
+| 地图 | Leaflet + OpenStreetMap，标记全部足迹，点击定位 |
+| 地点搜索 | 输入地名自动填坐标与地址（Nominatim） |
+| 附近发现 | 按当前位置推荐美食与景点（Overpass API），分「美食 / 美景」两类 |
+| 到达提醒 | 开启后位置移动超过 1 km 自动推送附近的美食与美景 |
+| 朋友圈卡片 | 导出 1080×1920 竖版图片：封面图 + 地点 + 日期 + 描述 + 评分 + 小地图 |
+| 数据备份 | JSON 导出 / 导入（含照片），换设备可迁移 |
 
-```
-travel-diary/
-├── server/              # Express.js 后端
-│   ├── index.js        # 服务器入口
-│   ├── db.js           # 数据库初始化
-│   └── routes/         # API 路由
-│       ├── travel.js   # 旅行记录 API
-│       └── recommendations.js  # 推荐系统 API
-├── client/             # React 前端
-│   ├── src/
-│   │   ├── App.jsx     # 主应用组件
-│   │   └── components/ # React 组件
-│   │       ├── Map.jsx
-│   │       ├── TravelForm.jsx
-│   │       └── TravelList.jsx
-│   └── package.json
-├── package.json        # 主项目依赖
-└── README.md
-```
-
-## 快速开始
-
-### 前置要求
-- Node.js >= 16
-- npm 或 yarn
-
-### 安装依赖
+## 本地开发
 
 ```bash
-# 安装服务器依赖
-npm install
-
-# 安装客户端依赖
 cd client
 npm install
-cd ..
+npm run dev      # http://localhost:3000
+npm run build    # 产物在 client/dist
 ```
-
-### 配置环境变量
-
-复制 `.env.example` 到 `.env` 并填写相关配置：
-
-```bash
-cp .env.example .env
-```
-
-```env
-PORT=5000
-NODE_ENV=development
-DATABASE_URL=./database/travel-diary.db
-UPLOAD_DIR=./upload
-GOOGLE_MAPS_API_KEY=your_api_key_here
-GOOGLE_PLACES_API_KEY=your_api_key_here
-```
-
-### 启动开发服务器
-
-```bash
-# 同时启动后端和前端
-npm run dev
-
-# 或分别启动
-npm run dev:server  # 后端运行在 http://localhost:5000
-npm run dev:client  # 前端运行在 http://localhost:3000
-```
-
-## API 文档
-
-### 旅行记录
-
-#### 创建旅行记录
-```
-POST /api/travels
-Body: {
-  "title": "标题",
-  "description": "描述",
-  "latitude": 48.8584,
-  "longitude": 2.2945,
-  "address": "地址",
-  "rating": 5
-}
-```
-
-#### 获取所有旅行记录
-```
-GET /api/travels
-```
-
-#### 获取单条旅行记录及其照片
-```
-GET /api/travels/:id
-```
-
-#### 上传照片
-```
-POST /api/travels/:id/photos
-Content-Type: multipart/form-data
-Form Data: photos[] (文件数组)
-```
-
-#### 更新旅行记录
-```
-PUT /api/travels/:id
-Body: {
-  "title": "新标题",
-  "description": "新描述",
-  "rating": 4
-}
-```
-
-#### 删除旅行记录
-```
-DELETE /api/travels/:id
-```
-
-### 推荐系统
-
-#### 获取某位置的推荐
-```
-GET /api/recommendations/:travelId
-```
-
-#### 生成推荐（基于位置）
-```
-POST /api/recommendations/:travelId/generate
-```
-
-#### 添加自定义推荐
-```
-POST /api/recommendations
-Body: {
-  "travelId": "travel_id",
-  "name": "推荐名称",
-  "type": "restaurant|attraction|cafe",
-  "latitude": 48.8584,
-  "longitude": 2.2945,
-  "rating": 4.5
-}
-```
-
-## 数据库架构
-
-### travels 表
-| 字段 | 类型 | 描述 |
-|------|------|------|
-| id | TEXT | 主键 UUID |
-| title | TEXT | 旅行标题 |
-| description | TEXT | 描述 |
-| latitude | REAL | 纬度 |
-| longitude | REAL | 经度 |
-| address | TEXT | 地址 |
-| rating | INTEGER | 评分 |
-| created_at | DATETIME | 创建时间 |
-| updated_at | DATETIME | 更新时间 |
-
-### photos 表
-| 字段 | 类型 | 描述 |
-|------|------|------|
-| id | TEXT | 主键 UUID |
-| travel_id | TEXT | 外键 |
-| filename | TEXT | 文件名 |
-| file_path | TEXT | 文件路径 |
-| uploaded_at | DATETIME | 上传时间 |
-
-### recommendations 表
-| 字段 | 类型 | 描述 |
-|------|------|------|
-| id | TEXT | 主键 UUID |
-| travel_id | TEXT | 外键 |
-| name | TEXT | 推荐名称 |
-| type | TEXT | 类型 |
-| latitude | REAL | 纬度 |
-| longitude | REAL | 经度 |
-| rating | REAL | 评分 |
-| added_at | DATETIME | 添加时间 |
 
 ## 技术栈
 
-**后端**
-- Express.js - Web 框架
-- SQLite3 - 数据库
-- Multer - 文件上传
+React 18 + Vite 5 · Leaflet / react-leaflet · IndexedDB · Canvas
 
-**前端**
-- React 18 - UI 框架
-- Leaflet - 地图库
-- Axios - HTTP 请求
-- Vite - 打包工具
+第三方数据：OpenStreetMap（地图瓦片、地点搜索）、Overpass API（POI）。全部免费、无需 API Key。
 
-## 后续改进计划
+## 部署
 
-- [ ] 用户认证系统
-- [ ] 集成 Google Places API 进行实时推荐
-- [ ] 地理围栏功能 - 到达地点时自动提醒
-- [ ] 照片库和相册管理
-- [ ] 社交分享功能
-- [ ] 旅行路线规划
-- [ ] 离线地图支持
-- [ ] 移动应用版本
+仓库已配置 `vercel.json`，推送到 `main` 分支后 Vercel 自动构建部署。
 
-## 许可证
+## 说明
 
-MIT License - 详见 LICENSE 文件
-
-## 联系方式
-
-有问题或建议？欢迎提交 Issue 或 Pull Request！
+数据保存在浏览器本地（元数据在 localStorage，照片在 IndexedDB），不上传服务器。
+换浏览器或清理缓存前，请先用「备份」导出 JSON。

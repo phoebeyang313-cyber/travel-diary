@@ -1,81 +1,96 @@
 .travel-list {
-  flex: 1;
-  overflow-y: auto;
-  padding: 0;
-}
-
-.empty-state {
-  padding: 40px 16px;
-  text-align: center;
-  color: #999;
-}
-
-.empty-state p {
-  font-size: 16px;
-  margin-bottom: 8px;
-}
-
-.empty-state small {
-  font-size: 12px;
-  color: #bbb;
-}
-
-.travel-item {
-  padding: 16px;
-  border-bottom: 1px solid #f0f0f0;
-  cursor: pointer;
-  transition: background 0.2s;
-  border-left: 3px solid transparent;
-}
-
-.travel-item:hover {
-  background: #f5f5f5;
-}
-
-.travel-item.active {
-  background: #f0f3ff;
-  border-left-color: #667eea;
-}
-
-.travel-item-header {
+  padding: 12px 14px 24px;
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.travel-card {
+  position: relative;
+  display: flex;
+  gap: 12px;
+  padding: 10px;
+  width: 100%;
+  text-align: left;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
+}
+
+.travel-card:hover {
+  border-color: #c7cbd3;
+  box-shadow: var(--shadow-sm);
+}
+
+.travel-card.active {
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
+}
+
+.thumb {
+  width: 62px;
+  height: 62px;
+  border-radius: 9px;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: #eef0f3;
+  display: flex;
   align-items: center;
-  margin-bottom: 8px;
+  justify-content: center;
+  font-size: 20px;
+  opacity: 0.9;
 }
 
-.travel-item-header h4 {
-  margin: 0;
-  font-size: 16px;
-  color: #333;
+.tc-body {
   flex: 1;
+  min-width: 0;
 }
 
-.travel-item .rating {
+.tc-title {
   font-size: 14px;
-  color: #ff6b6b;
-  margin-left: 8px;
-}
-
-.travel-item .description {
-  font-size: 13px;
-  color: #666;
-  margin: 6px 0;
-  line-height: 1.4;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
+  font-weight: 600;
+  color: var(--ink);
   overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.travel-item .address {
-  font-size: 12px;
-  color: #999;
-  margin: 6px 0;
+.tc-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 2px;
 }
 
-.travel-item .date {
+.tc-date {
+  font-size: 11.5px;
+  color: var(--faint);
+}
+
+.tc-rating {
   font-size: 11px;
-  color: #bbb;
-  margin: 6px 0 0 0;
+  color: var(--amber);
+  letter-spacing: 1px;
+}
+
+.tc-addr {
+  font-size: 12px;
+  color: var(--sub);
+  margin-top: 3px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tc-count {
+  position: absolute;
+  right: 10px;
+  bottom: 8px;
+  font-size: 10.5px;
+  color: var(--faint);
+  background: var(--surface-2);
+  padding: 1px 6px;
+  border-radius: 20px;
+  border: 1px solid var(--line);
 }
