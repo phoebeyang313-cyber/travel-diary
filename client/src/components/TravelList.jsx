@@ -1,6 +1,6 @@
 import './TravelList.css';
 import { formatDate } from '../lib/storage';
-import { getPhotoURL } from '../lib/media';
+import { getThumbURL } from '../lib/media';
 import { useEffect, useState } from 'react';
 
 function Thumb({ photoId, alt }) {
@@ -8,7 +8,7 @@ function Thumb({ photoId, alt }) {
   useEffect(() => {
     let alive = true;
     if (!photoId) return;
-    getPhotoURL(photoId).then((u) => alive && setUrl(u));
+    getThumbURL(photoId).then((u) => alive && setUrl(u));
     return () => {
       alive = false;
     };

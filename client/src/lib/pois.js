@@ -1,13 +1,22 @@
 // 附近「美食 + 美景」：OpenStreetMap Overpass API，免费无需 key
 
-const ENDPOINT = 'https://overpass-api.de/api/interpreter';
+// 多个公共 Overpass 节点轮换，主节点繁忙时自动换下一个
+const ENDPOINTS = [
+  'https://overpass-api.de/api/interpreter',
+  'https://overpass.kumi.systems/api/interpreter',
+  'https://overpass.private.coffee/api/interpreter',
+];
+
+const RETRY = { attempts: 3, baseDelay: 600, timeout: 18000 };
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const FOOD_FILTER = 'node["amenity"~"^(restaurant|cafe|fast_food|bakery|ice_cream|bar|pub)$"]';
 const SIGHT_FILTER =
   'node["tourism"~"^(attraction|viewpoint|museum|artwork|gallery|zoo)$"];node["historic"~"^(monument|memorial|castle|ruins)$"];node["leisure"~"^(park|garden|beach_resort|nature_reserve)$"]';
 
 function buildQuery(lat, lon, radius) {
-  return `[out:json][timeout:25];
+  return `[out:json][timeout:15];
 (
   ${FOOD_FILTER}(around:${radius},${lat},${lon});
   ${SIGHT_FILTER}(around:${radius * 2},${lat},${lon});
@@ -48,14 +57,49 @@ function labelOf(tags = {}) {
   return '推荐';
 }
 
-/** 拉取附近的美食与景点 */
+/** 单次请求：带超时中断，失败直接抛错交给外层重试 */
+async function queryOnce(endpoint, body, timeoutMs) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      body: 'data=' + encodeURIComponent(body),
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      signal: ctrl.signal,
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    // Overpass 偶发返回 200 + 错误信息体，elements 缺失时视为失败
+    if (!data || !Array.isArray(data.elements)) {
+      throw new Error(data?.remark || '返回格式异常');
+    }
+    return data;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/** 拉取附近的美食与景点（自动重试 + 多节点轮换） */
 export async function fetchNearby(lat, lon, radius = 1200) {
-  const res = await fetch(ENDPOINT, {
-    method: 'POST',
-    body: 'data=' + encodeURIComponent(buildQuery(lat, lon, radius)),
-  });
-  if (!res.ok) throw new Error('附近推荐服务暂时不可用');
-  const data = await res.json();
+  const body = buildQuery(lat, lon, radius);
+  let lastErr;
+
+  for (let i = 0; i < RETRY.attempts; i++) {
+    const endpoint = ENDPOINTS[i % ENDPOINTS.length];
+    try {
+      const data = await queryOnce(endpoint, body, RETRY.timeout);
+      return normalize(data);
+    } catch (e) {
+      lastErr = e;
+      if (i < RETRY.attempts - 1) await sleep(RETRY.baseDelay * 2 ** i);
+    }
+  }
+  console.warn('Overpass 连续失败', lastErr);
+  throw new Error('附近推荐暂时取不到，稍后再试');
+}
+
+function normalize(data) {
   const items = (data.elements || [])
     .filter((el) => el.tags && el.tags.name)
     .map((el) => ({

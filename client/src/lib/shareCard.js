@@ -62,6 +62,61 @@ function drawCover(ctx, img, x, y, w, h) {
   ctx.drawImage(img, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh);
 }
 
+/**
+ * 多图宫格布局：1 张整幅 / 2 张上下 / 3 张上 1 下 2 / 4 张及以上上 1 下 3
+ * 总高度与单图一致，文字区布局不受影响
+ */
+function galleryLayout(n, x, y, w, h, gap) {
+  if (n <= 1) return [{ x, y, w, h }];
+  if (n === 2) {
+    const ch = (h - gap) / 2;
+    return [
+      { x, y, w, h: ch },
+      { x, y: y + ch + gap, w, h: ch },
+    ];
+  }
+  const topH = Math.round(h * 0.62);
+  const botH = h - topH - gap;
+  const cols = n === 3 ? 2 : 3;
+  const cw = (w - gap * (cols - 1)) / cols;
+  const cells = [{ x, y, w, h: topH }];
+  for (let i = 0; i < cols; i++) {
+    cells.push({ x: x + i * (cw + gap), y: y + topH + gap, w: cw, h: botH });
+  }
+  return cells;
+}
+
+/** 画宫格；overflow > 0 时最后一格叠「+N」遮罩 */
+function drawGallery(ctx, imgs, x, y, w, h, overflow = 0) {
+  const GAP = 6;
+  const cells = galleryLayout(imgs.length, x, y, w, h, GAP);
+
+  cells.forEach((c, i) => {
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(c.x, c.y, c.w, c.h);
+    ctx.clip();
+    if (imgs[i]) drawCover(ctx, imgs[i], c.x, c.y, c.w, c.h);
+    ctx.restore();
+  });
+
+  if (overflow > 0 && cells.length > 1) {
+    const last = cells[cells.length - 1];
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(last.x, last.y, last.w, last.h);
+    ctx.clip();
+    ctx.fillStyle = 'rgba(0,0,0,0.45)';
+    ctx.fillRect(last.x, last.y, last.w, last.h);
+    ctx.fillStyle = '#fff';
+    ctx.font = `600 64px ${FONT}`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(`+${overflow}`, last.x + last.w / 2, last.y + last.h / 2);
+    ctx.restore();
+  }
+}
+
 function drawStars(ctx, rating, x, y, size = 30) {
   const filled = Math.round(rating || 0);
   ctx.font = `${size}px ${FONT}`;
@@ -136,11 +191,12 @@ export async function fetchMapThumb(lat, lon, zoom = 13, w = 972, h = 300) {
 /**
  * 绘制分享卡片
  * @param {object} travel 旅行记录
- * @param {object} opts { photos: [url...], mapThumb: canvas|null }
+ * @param {object} opts { photos: [url...] 最多 4 张, mapThumb: canvas|null, photoCount: 实际总张数 }
  * @returns {Promise<HTMLCanvasElement>}
  */
 export async function renderShareCard(travel, opts = {}) {
   const { photos = [], mapThumb = null } = opts;
+  const photoCount = opts.photoCount ?? photos.length;
 
   const canvas = document.createElement('canvas');
   canvas.width = CARD_W;
@@ -151,23 +207,21 @@ export async function renderShareCard(travel, opts = {}) {
   ctx.fillStyle = '#ffffff';
   ctx.fillRect(0, 0, CARD_W, CARD_H);
 
-  // ---- 顶部主图 ----
+  // ---- 顶部图片区（1~4 张自动排版，最多取 4 张）----
   const HERO_H = 1080;
-  const heroImg = photos.length ? await loadImage(photos[0]) : null;
+  const wanted = Math.min(photos.length, 4);
+  const loaded = await Promise.all(photos.slice(0, wanted).map(loadImage));
+  const imgs = loaded.filter(Boolean);
+  const overflow = Math.max(0, photoCount - imgs.length);
 
-  if (heroImg) {
-    ctx.save();
-    ctx.beginPath();
-    ctx.rect(0, 0, CARD_W, HERO_H);
-    ctx.clip();
-    drawCover(ctx, heroImg, 0, 0, CARD_W, HERO_H);
+  if (imgs.length) {
+    drawGallery(ctx, imgs, 0, 0, CARD_W, HERO_H, overflow);
     // 底部淡出，过渡到文字区
     const grad = ctx.createLinearGradient(0, HERO_H - 260, 0, HERO_H);
     grad.addColorStop(0, 'rgba(255,255,255,0)');
     grad.addColorStop(1, 'rgba(255,255,255,1)');
     ctx.fillStyle = grad;
     ctx.fillRect(0, HERO_H - 260, CARD_W, 260);
-    ctx.restore();
   } else {
     // 无照片：柔和渐变封面
     const g = ctx.createLinearGradient(0, 0, CARD_W, HERO_H);
@@ -182,9 +236,9 @@ export async function renderShareCard(travel, opts = {}) {
     ctx.fillText('🧳', CARD_W / 2, HERO_H / 2);
   }
 
-  // 多图角标
-  if (photos.length > 1) {
-    const txt = `1 / ${photos.length}`;
+  // 张数角标
+  if (photoCount > 1) {
+    const txt = `📷 ${photoCount}`;
     ctx.font = `28px ${FONT}`;
     const tw = ctx.measureText(txt).width;
     const px = CARD_W - 48 - (tw + 40);

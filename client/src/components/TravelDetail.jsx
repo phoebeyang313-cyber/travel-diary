@@ -21,11 +21,13 @@ export default function TravelDetail({ travel, onEdit, onDelete, onBack }) {
   const handleExport = async () => {
     setExporting(true);
     try {
-      const ids = (travel.photos || []).map((p) => p.id);
+      // 卡片最多排 4 张，没必要把全部原图读进内存
+      const all = travel.photos || [];
+      const ids = all.slice(0, 4).map((p) => p.id);
       const urls = ids.length ? await Promise.all(ids.map((id) => getPhotoURL(id))) : [];
       const photos = urls.filter(Boolean);
       const mapThumb = await fetchMapThumb(travel.latitude, travel.longitude);
-      const canvas = await renderShareCard(travel, { photos, mapThumb });
+      const canvas = await renderShareCard(travel, { photos, mapThumb, photoCount: all.length });
       const blob = await canvasToBlob(canvas);
       const date = (travel.visitedAt || travel.createdAt || '').slice(0, 10);
       setShare({

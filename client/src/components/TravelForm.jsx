@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import './TravelForm.css';
-import { ingestFiles, deletePhotos, getPhotoURL } from '../lib/media';
+import { ingestFiles, deletePhotos, getThumbURL } from '../lib/media';
 import { searchPlace, getCurrentPosition, reverseGeocode } from '../lib/geo';
 
 const todayStr = () => new Date().toISOString().slice(0, 10);
@@ -36,7 +36,7 @@ export default function TravelForm({ initial, onSubmit, onCancel, onToast }) {
     let alive = true;
     const list = initial?.photos || [];
     if (!list.length) return;
-    Promise.all(list.map(async (p) => ({ ...p, url: await getPhotoURL(p.id) }))).then((res) => {
+    Promise.all(list.map(async (p) => ({ ...p, url: await getThumbURL(p.id) }))).then((res) => {
       if (alive) setPhotos(res.filter((p) => p.url));
     });
     return () => {
@@ -105,7 +105,7 @@ export default function TravelForm({ initial, onSubmit, onCancel, onToast }) {
     try {
       const metas = await ingestFiles(files);
       const withUrl = await Promise.all(
-        metas.map(async (m) => ({ ...m, url: await getPhotoURL(m.id) }))
+        metas.map(async (m) => ({ ...m, url: await getThumbURL(m.id) }))
       );
       const usable = withUrl.filter((p) => p.url);
       stagedIds.current.push(...usable.map((p) => p.id));
