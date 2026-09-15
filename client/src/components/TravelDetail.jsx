@@ -11,7 +11,8 @@ import {
 } from '../lib/shareCard';
 import ShareModal from './ShareModal';
 
-const THEME_KEY = 'travel_diary_card_theme';
+// v2：默认配色改为暖调，用新 key 让旧的默认值失效
+const THEME_KEY = 'travel_diary_card_theme_v2';
 
 export default function TravelDetail({ travel, onEdit, onDelete, onBack }) {
   const [gallery, setGallery] = useState(null);

@@ -60,7 +60,7 @@ export const CARD_THEMES = {
   },
 };
 
-export const DEFAULT_THEME = 'light';
+export const DEFAULT_THEME = 'warm';
 
 function hexToRgba(hex, alpha) {
   const h = hex.replace('#', '');
