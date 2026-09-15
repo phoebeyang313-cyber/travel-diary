@@ -1,6 +1,15 @@
 import './ShareModal.css';
 
-export default function ShareModal({ imageUrl, filename, onDownload, onClose }) {
+export default function ShareModal({
+  imageUrl,
+  filename,
+  onDownload,
+  onClose,
+  themes = [],
+  theme,
+  onThemeChange,
+  switching = false,
+}) {
   const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
   return (
@@ -12,6 +21,24 @@ export default function ShareModal({ imageUrl, filename, onDownload, onClose }) 
             ×
           </button>
         </div>
+
+        {themes.length > 1 && (
+          <div className="share-themes">
+            <span className="share-themes-label">配色</span>
+            {themes.map((t) => (
+              <button
+                key={t.id}
+                className={`theme-chip ${theme === t.id ? 'on' : ''}`}
+                onClick={() => onThemeChange?.(t.id)}
+                disabled={switching}
+              >
+                <i className="theme-dot" style={{ background: t.bg }} />
+                {t.name}
+              </button>
+            ))}
+            {switching && <span className="spinner" />}
+          </div>
+        )}
 
         <div className="share-img-wrap">
           <img src={imageUrl} alt="旅行分享卡片" />

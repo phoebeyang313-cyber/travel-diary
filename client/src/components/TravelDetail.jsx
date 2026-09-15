@@ -1,14 +1,28 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import './TravelDetail.css';
 import { formatDate } from '../lib/storage';
 import { getPhotoURL } from '../lib/media';
-import { renderShareCard, canvasToBlob, fetchMapThumb } from '../lib/shareCard';
+import {
+  renderShareCard,
+  canvasToBlob,
+  fetchMapThumb,
+  CARD_THEMES,
+  DEFAULT_THEME,
+} from '../lib/shareCard';
 import ShareModal from './ShareModal';
+
+const THEME_KEY = 'travel_diary_card_theme';
 
 export default function TravelDetail({ travel, onEdit, onDelete, onBack }) {
   const [gallery, setGallery] = useState(null);
   const [exporting, setExporting] = useState(false);
+  const [switching, setSwitching] = useState(false);
   const [share, setShare] = useState(null);
+  const [cardTheme, setCardTheme] = useState(
+    () => localStorage.getItem(THEME_KEY) || DEFAULT_THEME
+  );
+  // 照片与地图缩略图只取一次，切换配色时复用，避免重复读 IndexedDB 和请求瓦片
+  const assets = useRef({ id: null, photos: null, mapThumb: null });
 
   const loadGallery = async () => {
     const ids = (travel.photos || []).map((p) => p.id);
@@ -18,27 +32,59 @@ export default function TravelDetail({ travel, onEdit, onDelete, onBack }) {
     if (list.length) setGallery(list);
   };
 
+  const buildCard = async (theme) => {
+    const all = travel.photos || [];
+    if (assets.current.id !== travel.id) {
+      assets.current = { id: travel.id, photos: null, mapThumb: null };
+    }
+    if (!assets.current.photos) {
+      // 卡片最多排 4 张，没必要把全部原图读进内存
+      const ids = all.slice(0, 4).map((p) => p.id);
+      const urls = ids.length ? await Promise.all(ids.map((id) => getPhotoURL(id))) : [];
+      assets.current.photos = urls.filter(Boolean);
+      assets.current.mapThumb = await fetchMapThumb(travel.latitude, travel.longitude);
+    }
+    const canvas = await renderShareCard(travel, {
+      photos: assets.current.photos || [],
+      mapThumb: assets.current.mapThumb,
+      photoCount: all.length,
+      theme,
+    });
+    const blob = await canvasToBlob(canvas);
+    const date = (travel.visitedAt || travel.createdAt || '').slice(0, 10);
+    return {
+      url: URL.createObjectURL(blob),
+      filename: `旅行日记_${travel.title}_${date}.jpg`.replace(/[\\/:*?"<>|]/g, ''),
+    };
+  };
+
   const handleExport = async () => {
     setExporting(true);
     try {
-      // 卡片最多排 4 张，没必要把全部原图读进内存
-      const all = travel.photos || [];
-      const ids = all.slice(0, 4).map((p) => p.id);
-      const urls = ids.length ? await Promise.all(ids.map((id) => getPhotoURL(id))) : [];
-      const photos = urls.filter(Boolean);
-      const mapThumb = await fetchMapThumb(travel.latitude, travel.longitude);
-      const canvas = await renderShareCard(travel, { photos, mapThumb, photoCount: all.length });
-      const blob = await canvasToBlob(canvas);
-      const date = (travel.visitedAt || travel.createdAt || '').slice(0, 10);
-      setShare({
-        url: URL.createObjectURL(blob),
-        filename: `旅行日记_${travel.title}_${date}.jpg`.replace(/[\\/:*?"<>|]/g, ''),
-      });
+      const next = await buildCard(cardTheme);
+      if (share?.url) URL.revokeObjectURL(share.url);
+      setShare(next);
     } catch (e) {
       console.error(e);
       alert('导出失败，请重试');
     } finally {
       setExporting(false);
+    }
+  };
+
+  const handleThemeChange = async (theme) => {
+    if (theme === cardTheme || switching) return;
+    setSwitching(true);
+    try {
+      const next = await buildCard(theme);
+      setCardTheme(theme);
+      localStorage.setItem(THEME_KEY, theme);
+      if (share?.url) URL.revokeObjectURL(share.url);
+      setShare(next);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setSwitching(false);
     }
   };
 
@@ -101,7 +147,7 @@ export default function TravelDetail({ travel, onEdit, onDelete, onBack }) {
           {exporting ? <span className="spinner" /> : '🖼️'}
           {exporting ? ' 正在生成…' : ' 导出朋友圈卡片（1080×1920）'}
         </button>
-        <p className="hint">竖版卡片：封面图 + 地点 + 日期 + 描述 + 小地图</p>
+        <p className="hint">竖版卡片：封面图 + 地点 + 日期 + 描述 + 小地图，导出后可切换配色</p>
       </div>
 
       {gallery && (
@@ -127,6 +173,10 @@ export default function TravelDetail({ travel, onEdit, onDelete, onBack }) {
             a.click();
             document.body.removeChild(a);
           }}
+          themes={Object.values(CARD_THEMES)}
+          theme={cardTheme}
+          onThemeChange={handleThemeChange}
+          switching={switching}
           onClose={() => {
             URL.revokeObjectURL(share.url);
             setShare(null);

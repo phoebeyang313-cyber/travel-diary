@@ -6,10 +6,68 @@ export const CARD_H = 1920;
 
 const FONT = "'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', Arial, sans-serif";
 
-const INK = '#15171a';
-const SUB = '#6b7280';
-const FAINT = '#9ca3af';
-const LINE = '#e8eaed';
+export const CARD_THEMES = {
+  light: {
+    id: 'light',
+    name: '浅色',
+    bg: '#ffffff',
+    ink: '#15171a',
+    sub: '#6b7280',
+    faint: '#9ca3af',
+    line: '#e8eaed',
+    desc: '#374151',
+    coverA: '#eef2ff',
+    coverB: '#faf5ff',
+    coverIcon: '#c7d2fe',
+    badgeBg: 'rgba(0,0,0,0.45)',
+    badgeFg: '#ffffff',
+    star: '#f59e0b',
+    starOff: '#e8eaed',
+  },
+  dark: {
+    id: 'dark',
+    name: '深色',
+    bg: '#15171a',
+    ink: '#f4f5f7',
+    sub: '#a7b0ba',
+    faint: '#7b838d',
+    line: '#2b2f36',
+    desc: '#d3d8de',
+    coverA: '#1d2231',
+    coverB: '#2a2039',
+    coverIcon: '#5b54d6',
+    badgeBg: 'rgba(255,255,255,0.18)',
+    badgeFg: '#ffffff',
+    star: '#f5b544',
+    starOff: '#3a3f47',
+  },
+  warm: {
+    id: 'warm',
+    name: '暖调',
+    bg: '#fdf8f0',
+    ink: '#3b2f24',
+    sub: '#8a7460',
+    faint: '#b3a08c',
+    line: '#eadfd0',
+    desc: '#5c4a38',
+    coverA: '#fde9d0',
+    coverB: '#f7e4e6',
+    coverIcon: '#d9a066',
+    badgeBg: 'rgba(59,47,36,0.45)',
+    badgeFg: '#fdf8f0',
+    star: '#e08a1e',
+    starOff: '#eadfd0',
+  },
+};
+
+export const DEFAULT_THEME = 'light';
+
+function hexToRgba(hex, alpha) {
+  const h = hex.replace('#', '');
+  const v = h.length === 3 ? h.split('').map((c) => c + c).join('') : h;
+  const n = parseInt(v, 16);
+  return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`;
+}
 
 function loadImage(src) {
   return new Promise((resolve) => {
@@ -117,14 +175,14 @@ function drawGallery(ctx, imgs, x, y, w, h, overflow = 0) {
   }
 }
 
-function drawStars(ctx, rating, x, y, size = 30) {
+function drawStars(ctx, rating, x, y, size = 30, t = CARD_THEMES.light) {
   const filled = Math.round(rating || 0);
   ctx.font = `${size}px ${FONT}`;
   ctx.textAlign = 'left';
   ctx.textBaseline = 'middle';
-  ctx.fillStyle = '#f59e0b';
+  ctx.fillStyle = t.star;
   ctx.fillText('★'.repeat(filled), x, y);
-  ctx.fillStyle = LINE;
+  ctx.fillStyle = t.starOff;
   ctx.fillText('★'.repeat(Math.max(0, 5 - filled)), x + size * filled, y);
 }
 
@@ -191,12 +249,13 @@ export async function fetchMapThumb(lat, lon, zoom = 13, w = 972, h = 300) {
 /**
  * 绘制分享卡片
  * @param {object} travel 旅行记录
- * @param {object} opts { photos: [url...] 最多 4 张, mapThumb: canvas|null, photoCount: 实际总张数 }
+ * @param {object} opts { photos: [url...] 最多 4 张, mapThumb: canvas|null, photoCount: 实际总张数, theme: 'light'|'dark'|'warm' }
  * @returns {Promise<HTMLCanvasElement>}
  */
 export async function renderShareCard(travel, opts = {}) {
   const { photos = [], mapThumb = null } = opts;
   const photoCount = opts.photoCount ?? photos.length;
+  const t = CARD_THEMES[opts.theme] || CARD_THEMES[DEFAULT_THEME];
 
   const canvas = document.createElement('canvas');
   canvas.width = CARD_W;
@@ -204,7 +263,7 @@ export async function renderShareCard(travel, opts = {}) {
   const ctx = canvas.getContext('2d');
 
   // 背景
-  ctx.fillStyle = '#ffffff';
+  ctx.fillStyle = t.bg;
   ctx.fillRect(0, 0, CARD_W, CARD_H);
 
   // ---- 顶部图片区（1~4 张自动排版，最多取 4 张）----
@@ -216,20 +275,20 @@ export async function renderShareCard(travel, opts = {}) {
 
   if (imgs.length) {
     drawGallery(ctx, imgs, 0, 0, CARD_W, HERO_H, overflow);
-    // 底部淡出，过渡到文字区
+    // 底部淡出，过渡到文字区（跟随主题底色）
     const grad = ctx.createLinearGradient(0, HERO_H - 260, 0, HERO_H);
-    grad.addColorStop(0, 'rgba(255,255,255,0)');
-    grad.addColorStop(1, 'rgba(255,255,255,1)');
+    grad.addColorStop(0, hexToRgba(t.bg, 0));
+    grad.addColorStop(1, hexToRgba(t.bg, 1));
     ctx.fillStyle = grad;
     ctx.fillRect(0, HERO_H - 260, CARD_W, 260);
   } else {
     // 无照片：柔和渐变封面
     const g = ctx.createLinearGradient(0, 0, CARD_W, HERO_H);
-    g.addColorStop(0, '#eef2ff');
-    g.addColorStop(1, '#faf5ff');
+    g.addColorStop(0, t.coverA);
+    g.addColorStop(1, t.coverB);
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, CARD_W, HERO_H);
-    ctx.fillStyle = '#c7d2fe';
+    ctx.fillStyle = t.coverIcon;
     ctx.font = `200px ${FONT}`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -242,10 +301,10 @@ export async function renderShareCard(travel, opts = {}) {
     ctx.font = `28px ${FONT}`;
     const tw = ctx.measureText(txt).width;
     const px = CARD_W - 48 - (tw + 40);
-    ctx.fillStyle = 'rgba(0,0,0,0.45)';
+    ctx.fillStyle = t.badgeBg;
     roundRect(ctx, px, 48, tw + 40, 56, 28);
     ctx.fill();
-    ctx.fillStyle = '#fff';
+    ctx.fillStyle = t.badgeFg;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(txt, px + (tw + 40) / 2, 76);
@@ -261,7 +320,7 @@ export async function renderShareCard(travel, opts = {}) {
   ctx.textAlign = 'left';
   ctx.textBaseline = 'top';
   ctx.font = `34px ${FONT}`;
-  ctx.fillStyle = SUB;
+  ctx.fillStyle = t.sub;
   const placeLines = wrapText(ctx, `📍 ${place}`, CONTENT_W, 2);
   placeLines.forEach((l) => {
     ctx.fillText(l, PAD, y);
@@ -272,7 +331,7 @@ export async function renderShareCard(travel, opts = {}) {
 
   // 标题
   ctx.font = `600 68px ${FONT}`;
-  ctx.fillStyle = INK;
+  ctx.fillStyle = t.ink;
   const titleLines = wrapText(ctx, travel.title || '未命名地点', CONTENT_W, 2);
   titleLines.forEach((l) => {
     ctx.fillText(l, PAD, y);
@@ -284,18 +343,18 @@ export async function renderShareCard(travel, opts = {}) {
   // 日期 + 评分
   const dateText = formatCardDate(travel.visitedAt || travel.createdAt);
   ctx.font = `30px ${FONT}`;
-  ctx.fillStyle = FAINT;
+  ctx.fillStyle = t.faint;
   ctx.fillText(dateText, PAD, y + 4);
 
   if (travel.rating) {
     ctx.font = `30px ${FONT}`;
     const dw = ctx.measureText(dateText).width;
-    drawStars(ctx, travel.rating, PAD + dw + 28, y + 17, 28);
+    drawStars(ctx, travel.rating, PAD + dw + 28, y + 17, 28, t);
   }
   y += 60;
 
   // 分隔线
-  ctx.fillStyle = LINE;
+  ctx.fillStyle = t.line;
   ctx.fillRect(PAD, y, CONTENT_W, 2);
   y += 30;
 
@@ -306,7 +365,7 @@ export async function renderShareCard(travel, opts = {}) {
     const room = Math.max(1, Math.floor((FOOT_TOP - 30 - y) / DESC_LH));
     const maxLines = Math.min(6, room);
     ctx.font = `36px ${FONT}`;
-    ctx.fillStyle = '#374151';
+    ctx.fillStyle = t.desc;
     const descLines = wrapText(ctx, travel.description, CONTENT_W, maxLines);
     descLines.forEach((l) => {
       ctx.fillText(l, PAD, y);
@@ -315,7 +374,7 @@ export async function renderShareCard(travel, opts = {}) {
   }
 
   // ---- 底部：小地图 + 落款 ----
-  ctx.fillStyle = LINE;
+  ctx.fillStyle = t.line;
   ctx.fillRect(PAD, FOOT_TOP, CONTENT_W, 2);
 
   const MAP_W = 320;
@@ -334,12 +393,12 @@ export async function renderShareCard(travel, opts = {}) {
   ctx.textAlign = 'left';
   ctx.textBaseline = 'middle';
   ctx.font = `26px ${FONT}`;
-  ctx.fillStyle = FAINT;
+  ctx.fillStyle = t.faint;
   const coord = `${Number(travel.latitude).toFixed(4)}, ${Number(travel.longitude).toFixed(4)}`;
   ctx.fillText(coord, tx, FOOT_TOP + 62);
 
   ctx.font = `600 26px ${FONT}`;
-  ctx.fillStyle = SUB;
+  ctx.fillStyle = t.sub;
   ctx.fillText('TRAVEL DIARY · 旅行日记', tx, FOOT_TOP + 112);
 
   return canvas;
