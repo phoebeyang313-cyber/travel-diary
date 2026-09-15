@@ -222,3 +222,34 @@ select {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ---- 移动端适配（以手机使用为主）---- */
+@media (max-width: 900px) {
+  /* iOS Safari 在输入框字号小于 16px 时会自动放大整页，且不会自动缩回 */
+  input,
+  textarea,
+  select,
+  .input,
+  .textarea,
+  .select {
+    font-size: 16px;
+  }
+
+  /* 触控目标不低于 44px */
+  .btn {
+    height: 44px;
+    padding: 0 16px;
+  }
+  .panel-tabs button {
+    height: 44px;
+  }
+
+  /* 禁止整页橡皮筋回弹，滚动更像原生 App */
+  html,
+  body {
+    overscroll-behavior: none;
+  }
+  body {
+    -webkit-text-size-adjust: 100%;
+  }
+}

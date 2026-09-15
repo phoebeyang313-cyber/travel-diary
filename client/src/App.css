@@ -167,6 +167,48 @@
   box-shadow: var(--shadow-lg);
 }
 
+/* ---------- 顶栏「更多」菜单（移动端） ---------- */
+.more-menu {
+  display: none;
+}
+
+.more-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1090;
+}
+
+.more-pop {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  min-width: 196px;
+  padding: 6px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  z-index: 1100;
+}
+
+.more-pop button {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 12px;
+  text-align: left;
+  font-size: 14px;
+  border-radius: var(--radius-sm);
+  color: var(--ink);
+}
+.more-pop button:hover {
+  background: var(--surface-2);
+}
+.more-pop button.on {
+  color: var(--brand);
+  background: var(--brand-soft);
+}
+
 /* ---------- 底部导航（移动端） ---------- */
 .tabbar {
   display: none;
@@ -186,14 +228,23 @@
 
   .appbar-actions {
     width: 100%;
-    justify-content: space-between;
-    gap: 6px;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+
+  /* 次要操作收进「⋯」，主操作「＋ 新增」留在右下拇指区 */
+  .appbar-secondary {
+    display: none;
+  }
+
+  .more-menu {
+    display: block;
+    position: relative;
   }
 
   .appbar-actions .btn {
-    flex: 1;
-    padding: 0 8px;
-    font-size: 12.5px;
+    padding: 0 14px;
+    font-size: 13.5px;
   }
 
   .app-main[data-mobile-pane='panel'] .map-pane {

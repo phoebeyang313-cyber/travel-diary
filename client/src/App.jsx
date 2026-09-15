@@ -30,6 +30,7 @@ export default function App() {
   const [myLocation, setMyLocation] = useState(null);
   const [alertOn, setAlertOn] = useState(false);
   const [toast, setToast] = useState(null);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const importRef = useRef(null);
   const alertRef = useRef({ lat: null, lng: null, at: 0 });
@@ -296,18 +297,65 @@ export default function App() {
 
         <div className="appbar-actions">
           <button
-            className={`btn btn-ghost ${alertOn ? 'is-on' : ''}`}
+            className={`btn btn-ghost appbar-secondary ${alertOn ? 'is-on' : ''}`}
             onClick={() => setAlertOn((v) => !v)}
             title="到达新地方时提醒附近的美食与美景"
           >
             {alertOn ? '🔔 提醒中' : '🔕 到达提醒'}
           </button>
-          <button className="btn btn-ghost" onClick={() => importRef.current?.click()}>
+          <button
+            className="btn btn-ghost appbar-secondary"
+            onClick={() => importRef.current?.click()}
+          >
             导入
           </button>
-          <button className="btn btn-ghost" onClick={handleBackup}>
+          <button className="btn btn-ghost appbar-secondary" onClick={handleBackup}>
             备份
           </button>
+
+          <div className="more-menu">
+            <button
+              className="btn btn-ghost more-btn"
+              onClick={() => setMenuOpen((v) => !v)}
+              aria-label="更多操作"
+              aria-expanded={menuOpen}
+            >
+              ⋯
+            </button>
+            {menuOpen && (
+              <>
+                <div className="more-backdrop" onClick={() => setMenuOpen(false)} />
+                <div className="more-pop">
+                  <button
+                    className={alertOn ? 'on' : ''}
+                    onClick={() => {
+                      setAlertOn((v) => !v);
+                      setMenuOpen(false);
+                    }}
+                  >
+                    {alertOn ? '🔔 到达提醒：已开启' : '🔕 到达提醒：已关闭'}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setMenuOpen(false);
+                      importRef.current?.click();
+                    }}
+                  >
+                    📥 导入备份
+                  </button>
+                  <button
+                    onClick={() => {
+                      setMenuOpen(false);
+                      handleBackup();
+                    }}
+                  >
+                    📤 导出备份
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+
           <button className="btn btn-primary" onClick={startCreate}>
             ＋ 新增
           </button>

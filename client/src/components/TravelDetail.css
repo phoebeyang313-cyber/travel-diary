@@ -156,6 +156,19 @@
   text-align: center;
 }
 
+/* 手机上「导出卡片」常驻底部，长内容不用滚到底才能点 */
+@media (max-width: 900px) {
+  .detail-export {
+    position: sticky;
+    bottom: 0;
+    z-index: 5;
+  }
+
+  .detail-export .btn {
+    height: 48px;
+  }
+}
+
 .lightbox {
   position: fixed;
   inset: 0;
